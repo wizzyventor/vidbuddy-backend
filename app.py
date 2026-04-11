@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, jsonify, make_response, after_this_response
+from flask import Flask, request, send_file, jsonify, make_response
 from flask_cors import CORS
 import yt_dlp
 import os
@@ -48,8 +48,7 @@ def download():
             info = ydl.extract_info(video_url, download=False)
             video_title = info.get('title', 'vidbuddy_video')
             clean_title = re.sub(r'[\\/*?:"<>|]', "", video_title)
-            # Save into the downloads folder
-            temp_filename = os.path.join(DOWNLOAD_FOLDER, f"{clean_title}_{int(time.time())}.mp4")
+            temp_filename = os.path.join(DOWNLOAD_FOLDER, f"dl_{int(time.time())}.mp4")
 
         ydl_opts = {
             'format': format_id,
@@ -61,17 +60,19 @@ def download():
             ydl.download([video_url])
 
         file_size = os.path.getsize(temp_filename)
-        
-        # CLEANUP LOGIC: Delete file after sending
-        @after_this_response
-        def remove_file(response):
+
+        # Helper to stream the file and delete it afterward
+        def generate():
+            with open(temp_filename, 'rb') as f:
+                yield from f
+            # The file is deleted after the browser finishes reading the stream
             try:
                 os.remove(temp_filename)
-            except Exception as error:
-                app.logger.error(f"Error deleting file: {error}")
-            return response
+            except:
+                pass
 
-        response = make_response(send_file(temp_filename, as_attachment=True))
+        response = make_response(generate())
+        response.headers['Content-Type'] = 'video/mp4'
         response.headers['Content-Disposition'] = f"attachment; filename=\"{clean_title}.mp4\""
         response.headers['Content-Length'] = file_size
         response.headers['Access-Control-Expose-Headers'] = 'Content-Disposition, Content-Length'
@@ -80,7 +81,6 @@ def download():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route('/<filename>')
 def verify_ad_network(filename):
     if filename.endswith(".html") or filename.endswith(".txt"):
