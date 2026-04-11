@@ -115,6 +115,10 @@ def download():
             os.remove(temp_filename)
         return jsonify({"error": str(e)}), 500
 
+@app.route('/')
+def home():
+    return "VidBuddy API is running!", 200
+
 @app.route('/<filename>')
 def verify_ad_network(filename):
     """Allows ad network bots to find verification files in the root."""
