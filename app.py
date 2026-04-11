@@ -61,6 +61,14 @@ def download():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Add this near your other @app.route sections
+@app.route('/<filename>')
+def verify_ad_network(filename):
+    # This allows the ad network to find their verification file
+    if filename.endswith(".html") or filename.endswith(".txt"):
+        return send_file(filename)
+    return "Not Found", 404
+
 if __name__ == '__main__':
     # This is the magic line for Render
     port = int(os.environ.get("PORT", 5000))
