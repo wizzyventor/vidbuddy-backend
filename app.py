@@ -24,11 +24,22 @@ def get_info():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    ydl_opts = {'quiet': True, 'noplaylist': True}
+    # NEW FEATURE: Bot Detection Bypass (Impersonation)
+    ydl_opts = {
+        'quiet': True, 
+        'noplaylist': True,
+        'impersonate': 'chrome', # Mimics a real browser
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web'],
+                'skip': ['dash', 'hls']
+            }
+        }
+    }
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            # Filter for formats that have both video and audio to avoid FFmpeg errors
             formats = [
                 {'format_id': f['format_id'], 'resolution': f.get('resolution', 'N/A'), 'ext': f['ext']}
                 for f in info.get('formats', []) 
@@ -37,9 +48,11 @@ def get_info():
             return jsonify({
                 'title': info.get('title'),
                 'thumbnail': info.get('thumbnail'),
-                'formats': formats[-3:] # Top 3 options
+                'formats': formats[-3:] 
             })
     except Exception as e:
+        # Better error reporting for debugging
+        print(f"Extraction Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/download', methods=['POST'])
@@ -55,10 +68,12 @@ def download():
             clean_title = re.sub(r'[\\/*?:"<>|]', "", video_title)[:50]
             temp_filename = os.path.join(DOWNLOAD_FOLDER, f"dl_{int(time.time())}.mp4")
 
+        # NEW FEATURE: Bot Detection Bypass for actual download
         ydl_opts = {
             'format': format_id,
             'outtmpl': temp_filename,
             'quiet': True,
+            'impersonate': 'chrome',
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -82,6 +97,7 @@ def download():
         return response
 
     except Exception as e:
+        print(f"Download Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
