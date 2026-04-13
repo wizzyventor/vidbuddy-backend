@@ -1,11 +1,10 @@
 services:
   - type: web
     name: vidbuddy
-    env: python
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     buildpacks:
-      - heroku/python
       - https://github.com/render-examples/heroku-buildpack-nodejs.git
       - https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
+      - heroku/python
