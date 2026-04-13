@@ -8,7 +8,6 @@ import time
 app = Flask(__name__)
 CORS(app)
 
-# Ensure the download folder exists
 DOWNLOAD_FOLDER = "web_downloads"
 if not os.path.exists(DOWNLOAD_FOLDER):
     os.makedirs(DOWNLOAD_FOLDER)
@@ -24,14 +23,14 @@ def get_info():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    # NEW FEATURE: Bot Detection Bypass (Impersonation)
+    # UPDATED FEATURE: Advanced YouTube Bot Bypass
     ydl_opts = {
         'quiet': True, 
         'noplaylist': True,
-        'impersonate': 'chrome', # Mimics a real browser
+        'impersonate': 'chrome',
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web'],
+                'player_client': ['ios', 'android', 'web_safari'], # Uses mobile clients which are less likely to trigger bots
                 'skip': ['dash', 'hls']
             }
         }
@@ -51,7 +50,6 @@ def get_info():
                 'formats': formats[-3:] 
             })
     except Exception as e:
-        # Better error reporting for debugging
         print(f"Extraction Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
@@ -62,21 +60,23 @@ def download():
     format_id = data.get('format_id', 'best')
 
     try:
-        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+        # Combined download options for maximum stability
+        ydl_opts_meta = {'quiet': True, 'impersonate': 'chrome'}
+        with yt_dlp.YoutubeDL(ydl_opts_meta) as ydl:
             info = ydl.extract_info(video_url, download=False)
             video_title = info.get('title', 'video')
             clean_title = re.sub(r'[\\/*?:"<>|]', "", video_title)[:50]
             temp_filename = os.path.join(DOWNLOAD_FOLDER, f"dl_{int(time.time())}.mp4")
 
-        # NEW FEATURE: Bot Detection Bypass for actual download
-        ydl_opts = {
+        ydl_opts_dl = {
             'format': format_id,
             'outtmpl': temp_filename,
             'quiet': True,
             'impersonate': 'chrome',
+            'external_downloader': 'builtin' # Use built-in downloader to avoid path errors
         }
         
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl:
             ydl.download([video_url])
 
         file_size = os.path.getsize(temp_filename)
