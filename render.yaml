@@ -2,9 +2,4 @@ services:
   - type: web
     name: vidbuddy
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
-    buildpacks:
-      - https://github.com/render-examples/heroku-buildpack-nodejs.git
-      - https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
-      - heroku/python
+    env: docker # Tells Render to use our Dockerfile instead of native Python
