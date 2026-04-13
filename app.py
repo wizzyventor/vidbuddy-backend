@@ -23,19 +23,25 @@ def get_info():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    # UPDATED FEATURE: Advanced YouTube Bot Bypass
+    # NEW FEATURE: Advanced YouTube Bot Bypass & Client Rotation
+    # This uses mobile clients (iOS/Android) which are less likely to trigger "Sign In" blocks
     ydl_opts = {
         'quiet': True, 
         'noplaylist': True,
         'impersonate': 'chrome',
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios', 'android', 'web_safari'], # Uses mobile clients which are less likely to trigger bots
+                'player_client': ['ios', 'android', 'web_safari'],
                 'skip': ['dash', 'hls']
             }
         }
     }
     
+    # NEW FEATURE: Cookie Support
+    # If you upload a 'cookies.txt' to your GitHub, yt-dlp will use it to bypass bot checks
+    if os.path.exists('cookies.txt'):
+        ydl_opts['cookiefile'] = 'cookies.txt'
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -60,8 +66,11 @@ def download():
     format_id = data.get('format_id', 'best')
 
     try:
-        # Combined download options for maximum stability
+        # Re-using the same bot-bypass logic for the actual download
         ydl_opts_meta = {'quiet': True, 'impersonate': 'chrome'}
+        if os.path.exists('cookies.txt'):
+            ydl_opts_meta['cookiefile'] = 'cookies.txt'
+
         with yt_dlp.YoutubeDL(ydl_opts_meta) as ydl:
             info = ydl.extract_info(video_url, download=False)
             video_title = info.get('title', 'video')
@@ -73,8 +82,10 @@ def download():
             'outtmpl': temp_filename,
             'quiet': True,
             'impersonate': 'chrome',
-            'external_downloader': 'builtin' # Use built-in downloader to avoid path errors
+            'external_downloader': 'builtin'
         }
+        if os.path.exists('cookies.txt'):
+            ydl_opts_dl['cookiefile'] = 'cookies.txt'
         
         with yt_dlp.YoutubeDL(ydl_opts_dl) as ydl:
             ydl.download([video_url])
