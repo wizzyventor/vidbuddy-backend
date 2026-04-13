@@ -4,6 +4,7 @@ import yt_dlp
 import os
 import re
 import time
+import subprocess
 
 app = Flask(__name__)
 CORS(app)
@@ -14,7 +15,14 @@ if not os.path.exists(DOWNLOAD_FOLDER):
 
 @app.route('/')
 def home():
-    return "VidBuddy API is Active", 200
+    # NEW FEATURE: Environment Health Check
+    # Verifies that Node and FFmpeg are present in the Docker container
+    try:
+        node = subprocess.check_output(['node', '--version']).decode().strip()
+        ffmpeg = subprocess.check_output(['ffmpeg', '-version']).splitlines()[0].decode().strip()
+        return f"VidBuddy Active | Node: {node} | FFmpeg: {ffmpeg}", 200
+    except:
+        return "VidBuddy API is Active (Check Environment)", 200
 
 @app.route('/info', methods=['POST'])
 def get_info():
@@ -23,8 +31,7 @@ def get_info():
     if not url:
         return jsonify({"error": "No URL provided"}), 400
 
-    # NEW FEATURE: Advanced YouTube Bot Bypass & Client Rotation
-    # This uses mobile clients (iOS/Android) which are less likely to trigger "Sign In" blocks
+    # ORIGINAL FEATURE: Bot Bypass & Client Rotation
     ydl_opts = {
         'quiet': True, 
         'noplaylist': True,
@@ -37,8 +44,7 @@ def get_info():
         }
     }
     
-    # NEW FEATURE: Cookie Support
-    # If you upload a 'cookies.txt' to your GitHub, yt-dlp will use it to bypass bot checks
+    # ORIGINAL FEATURE: Cookie Support
     if os.path.exists('cookies.txt'):
         ydl_opts['cookiefile'] = 'cookies.txt'
 
@@ -66,7 +72,6 @@ def download():
     format_id = data.get('format_id', 'best')
 
     try:
-        # Re-using the same bot-bypass logic for the actual download
         ydl_opts_meta = {'quiet': True, 'impersonate': 'chrome'}
         if os.path.exists('cookies.txt'):
             ydl_opts_meta['cookiefile'] = 'cookies.txt'
@@ -82,7 +87,7 @@ def download():
             'outtmpl': temp_filename,
             'quiet': True,
             'impersonate': 'chrome',
-            'external_downloader': 'builtin'
+            'external_downloader': 'builtin' 
         }
         if os.path.exists('cookies.txt'):
             ydl_opts_dl['cookiefile'] = 'cookies.txt'
